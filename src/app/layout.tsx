@@ -22,8 +22,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
-        <PwaProvider />
-        {children}
+        <PwaProvider>{children}</PwaProvider>
       </body>
     </html>
   );

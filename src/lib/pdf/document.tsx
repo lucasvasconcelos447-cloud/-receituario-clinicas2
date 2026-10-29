@@ -100,19 +100,30 @@ export function PdfDocument({ snapshot: s }: { snapshot: Snapshot }) {
             style={{
               color: b.primary_color,
               fontSize: a5 ? 13 : 17,
+              lineHeight: 1.3,
+              marginBottom: 4,
               fontWeight: 700,
             }}
           >
             {o.name}
           </Text>
           {b.phrase && (
-            <Text style={{ fontSize: 7.5, color: "#58635f" }}>{b.phrase}</Text>
+            <Text
+              style={{
+                fontSize: 7.5,
+                lineHeight: 1.3,
+                marginBottom: 3,
+                color: "#58635f",
+              }}
+            >
+              {b.phrase}
+            </Text>
           )}
-          <Text style={{ fontSize: 8, marginTop: 4 }}>
+          <Text style={{ fontSize: 8, lineHeight: 1.3, marginTop: 4 }}>
             {p.name} · {p.category} · {p.council} {p.registration}/{p.state}
           </Text>
           {!s.blank && (
-            <Text style={{ fontSize: 7, marginTop: 4 }}>
+            <Text style={{ fontSize: 7, lineHeight: 1.3, marginTop: 4 }}>
               Paciente: {patient?.name} · Emissão:{" "}
               {d ? brDate(d.issue_date) : ""}
             </Text>
@@ -150,6 +161,7 @@ export function PdfDocument({ snapshot: s }: { snapshot: Snapshot }) {
             lineHeight: 1.3,
           }}
         >
+          {o.cnpj && <Text>CNPJ: {o.cnpj}</Text>}
           {b.show_address && (
             <Text>
               {[o.address, o.city, o.state].filter(Boolean).join(" · ")}

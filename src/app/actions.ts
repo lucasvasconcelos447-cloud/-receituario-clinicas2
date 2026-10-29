@@ -177,6 +177,11 @@ export async function saveBranding(_: Result, form: FormData): Promise<Result> {
         })
         .png()
         .toBuffer();
+      if (safe.length > 2 * 1024 * 1024)
+        return {
+          error:
+            "A imagem ficou muito grande após o processamento. Reduza a resolução ou envie um logotipo com fundo simples.",
+        };
       logo_path = `${organization.id}/logos/${randomUUID()}.png`;
       const { error } = await client.storage
         .from("clinical-private")

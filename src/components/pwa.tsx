@@ -1,17 +1,48 @@
 "use client";
-import { useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 interface InstallEvent extends Event {
   prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: string }>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
-export function PwaProvider() {
+const InstallationContext = createContext<{
+  prompt: InstallEvent | null;
+  installed: boolean;
+  clearPrompt: () => void;
+}>({ prompt: null, installed: false, clearPrompt: () => {} });
+export function PwaProvider({ children }: { children: ReactNode }) {
   const [offline, setOffline] = useState(false);
   const [waiting, setWaiting] = useState<ServiceWorker | null>(null);
+  const [prompt, setPrompt] = useState<InstallEvent | null>(null);
+  const [installed, setInstalled] = useState(false);
   useEffect(() => {
     const update = () => setOffline(!navigator.onLine);
+    const capture = (event: Event) => {
+      event.preventDefault();
+      setPrompt(event as InstallEvent);
+    };
+    const done = () => {
+      setInstalled(true);
+      setPrompt(null);
+    };
+    const restore = (event: PageTransitionEvent) => {
+      if (event.persisted) location.reload();
+    };
     update();
+    setInstalled(
+      matchMedia("(display-mode: standalone)").matches ||
+        Boolean((navigator as Navigator & { standalone?: boolean }).standalone),
+    );
+    window.addEventListener("beforeinstallprompt", capture);
+    window.addEventListener("appinstalled", done);
     window.addEventListener("online", update);
     window.addEventListener("offline", update);
+    window.addEventListener("pageshow", restore);
     if ("serviceWorker" in navigator)
       navigator.serviceWorker
         .register("/sw.js")
@@ -29,18 +60,18 @@ export function PwaProvider() {
           });
         })
         .catch(() => {});
-    const restore = (e: PageTransitionEvent) => {
-      if (e.persisted) location.reload();
-    };
-    window.addEventListener("pageshow", restore);
     return () => {
+      window.removeEventListener("beforeinstallprompt", capture);
+      window.removeEventListener("appinstalled", done);
       window.removeEventListener("online", update);
       window.removeEventListener("offline", update);
       window.removeEventListener("pageshow", restore);
     };
   }, []);
   return (
-    <>
+    <InstallationContext.Provider
+      value={{ prompt, installed, clearPrompt: () => setPrompt(null) }}
+    >
       {offline && (
         <div className="connection" role="alert">
           Sem conexão. Não é possível salvar alterações. Mantenha esta página
@@ -52,56 +83,50 @@ export function PwaProvider() {
           Atualização disponível. Salve seu trabalho antes de atualizar.{" "}
           <button
             onClick={() => {
-              waiting.postMessage("SKIP_WAITING");
               navigator.serviceWorker.addEventListener(
                 "controllerchange",
                 () => location.reload(),
                 { once: true },
               );
+              waiting.postMessage("SKIP_WAITING");
             }}
           >
             Atualizar aplicativo
           </button>
         </div>
       )}
-    </>
+      {children}
+    </InstallationContext.Provider>
   );
 }
 export function InstallButton() {
-  const [prompt, setPrompt] = useState<InstallEvent | null>(null);
-  const [installed, setInstalled] = useState(false);
+  const { prompt, installed, clearPrompt } = useContext(InstallationContext);
   const [help, setHelp] = useState("");
-  useEffect(() => {
-    setInstalled(
-      matchMedia("(display-mode: standalone)").matches ||
-        Boolean((navigator as Navigator & { standalone?: boolean }).standalone),
-    );
-    const capture = (e: Event) => {
-      e.preventDefault();
-      setPrompt(e as InstallEvent);
-    };
-    const done = () => {
-      setInstalled(true);
-      setPrompt(null);
-    };
-    window.addEventListener("beforeinstallprompt", capture);
-    window.addEventListener("appinstalled", done);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", capture);
-      window.removeEventListener("appinstalled", done);
-    };
-  }, []);
+  const [busy, setBusy] = useState(false);
   return (
     <div>
       <button
         className="button secondary"
-        disabled={installed}
+        disabled={installed || busy}
         onClick={async () => {
           if (prompt) {
-            await prompt.prompt();
-            const choice = await prompt.userChoice;
-            if (choice.outcome === "accepted") setInstalled(true);
-            setPrompt(null);
+            setBusy(true);
+            try {
+              await prompt.prompt();
+              const choice = await prompt.userChoice;
+              setHelp(
+                choice.outcome === "accepted"
+                  ? "A instalação foi solicitada. Aguarde a confirmação do navegador."
+                  : "Você pode instalar depois usando o menu do navegador.",
+              );
+            } catch {
+              setHelp(
+                "Abra o menu do navegador e procure Instalar aplicativo ou Adicionar à tela inicial.",
+              );
+            } finally {
+              clearPrompt();
+              setBusy(false);
+            }
           } else
             setHelp(
               /iPad|iPhone|iPod/.test(navigator.userAgent)
@@ -110,9 +135,13 @@ export function InstallButton() {
             );
         }}
       >
-        {installed ? "Aplicativo instalado" : "Instalar aplicativo"}
+        {installed
+          ? "Aplicativo instalado"
+          : busy
+            ? "Abrindo instalação…"
+            : "Instalar aplicativo"}
       </button>
-      {help && <p role="status">{help}</p>}
+      {help && !installed && <p role="status">{help}</p>}
       <p className="muted">
         A instalação facilita o acesso. Pacientes e documentos precisam de
         conexão.

@@ -83,16 +83,26 @@ A opção Instalar aplicativo usa o convite nativo quando disponível e fornece 
 
 ## Publicação
 
-Foi criado um projeto Vercel independente: `receituario-clinicas`, ID `prj_DMx4QUmePlOAmVGH9jd9bpUnPq0X`. **Ainda não há deployment confirmado ou URL publicada.** Repositório indicado pelo usuário: https://github.com/lucasvasconcelos447-cloud/-receituario-clinicas2 (público). Somente código, migrações e exemplos fictícios são destinados a ele. O projeto Supabase autorizado anteriormente não aparece na conta reconectada; é necessário restabelecer o acesso à conta correta antes de novas alterações no banco.
+Aplicativo: **https://receituario-clinicas.vercel.app**
 
-Com os acessos restabelecidos:
+Código-fonte: https://github.com/lucasvasconcelos447-cloud/-receituario-clinicas2 (repositório público indicado pelo usuário).
 
-1. Manter `.env.local`, `node_modules`, `.next` e `work` fora do versionamento. Para restringir a leitura do código, o proprietário pode ajustar a visibilidade do repositório no GitHub.
-2. Conectar esse repositório ao projeto Vercel acima, framework Next.js, Node 24, `npm ci`, `npm run build`.
-3. Configurar `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` e `NEXT_PUBLIC_APP_URL` em cada ambiente.
-4. Ajustar os callbacks no Supabase Auth para o domínio final.
-5. Publicar uma prévia e executar a jornada completa com contas e pacientes fictícios.
-6. Testar instalação em HTTPS, recebimento de e-mail, impressão física e compartilhamento em aparelhos reais antes de liberar para a cliente.
+- Vercel: `receituario-clinicas`, projeto `prj_DMx4QUmePlOAmVGH9jd9bpUnPq0X`, equipe `lucas-celos-projects`.
+- Supabase: `receituario-clinicas`, projeto `iztqjhkqihygiavvhins`, região São Paulo.
+- Node.js 24, Next.js e build Webpack. O pacote da função de PDF inclui as fontes Noto e os módulos de fontes padrão do PDFKit necessários no Linux da Vercel.
+- As variáveis públicas da conexão foram configuradas na Vercel; nenhuma chave administrativa é utilizada no navegador ou no código.
+- A publicação desta entrega usa a API da Vercel a partir de um commit específico do GitHub. O gatilho automático a cada push ainda não está configurado no projeto; para automatizar futuras publicações, vincule o repositório em Settings → Git na Vercel.
+
+Site URL confirmado: `https://receituario-clinicas.vercel.app`.
+
+Destinos de autenticação confirmados:
+
+- `https://receituario-clinicas.vercel.app/auth/callback`
+- `https://receituario-clinicas.vercel.app/auth/callback?next=/nova-senha`
+
+A conferência dos destinos não envia e-mails e não substitui a validação de entrega de confirmação/recuperação em uma caixa de entrada real. Para uso por clientes, configure um provedor SMTP próprio conforme os requisitos do Supabase. Não desative a confirmação de e-mail apenas para contornar limites do remetente de desenvolvimento.
+
+Para outra instalação, configure as variáveis de ambiente e os destinos de autenticação com o seu domínio. Não use o banco de outro produto.
 
 ## Pendências de operação
 
