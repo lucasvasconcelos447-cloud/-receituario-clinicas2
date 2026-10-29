@@ -2,7 +2,13 @@ import type { NextConfig } from "next";
 const config: NextConfig = {
   experimental: { serverActions: { bodySizeLimit: "3mb" } },
   serverExternalPackages: ["sharp", "@react-pdf/renderer"],
-  outputFileTracingIncludes: { "/api/pdf": ["./assets/fonts/**/*"] },
+  outputFileTracingIncludes: {
+    "/api/pdf": [
+      "./assets/fonts/**/*",
+      "./node_modules/pdfkit/js/standard-fonts/**/*",
+      "./node_modules/pdfkit/js/data/**/*",
+    ],
+  },
   async headers() {
     return [
       {
@@ -22,3 +28,4 @@ const config: NextConfig = {
   },
 };
 export default config;
+
