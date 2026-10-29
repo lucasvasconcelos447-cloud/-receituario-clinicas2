@@ -1,0 +1,73 @@
+import type { DocType } from "./config";
+export type Organization = {
+  id: string;
+  name: string;
+  legal_name: string;
+  cnpj: string;
+  phone: string;
+  email: string;
+  address: string;
+  city: string;
+  state: string;
+};
+export type Professional = {
+  organization_id: string;
+  name: string;
+  category: string;
+  council: string;
+  registration: string;
+  state: string;
+  specialty: string;
+  identifier: string;
+};
+export type Branding = {
+  organization_id: string;
+  primary_color: string;
+  secondary_color: string;
+  template: "minimalista" | "classico" | "floral";
+  paper: "A4" | "A5";
+  font: "classica" | "moderna";
+  logo_width: number;
+  logo_path: string | null;
+  ruled: boolean;
+  phrase: string;
+  show_address: boolean;
+  show_contact: boolean;
+  bleed_mm: number;
+  crop_marks: boolean;
+};
+export type Patient = {
+  id: string;
+  name: string;
+  birth_date: string | null;
+  phone: string;
+  identifier: string;
+  address: string;
+  sex: string;
+};
+export type ClinicalDocument = {
+  id: string;
+  patient_id: string | null;
+  type: DocType;
+  title: string;
+  content: string;
+  issue_date: string;
+  protocol: string;
+  protocol_year: string;
+  protocol_institution: string;
+  justification: string;
+  medication_mode: boolean;
+  clinical_reviewed: boolean;
+  status: "draft" | "generated";
+  updated_at: string;
+  created_at: string;
+};
+export type Snapshot = {
+  organization: Organization;
+  professional: Professional;
+  branding: Branding;
+  patient: Patient | null;
+  document: ClinicalDocument | null;
+  logoData: string | null;
+  blank: boolean;
+};
