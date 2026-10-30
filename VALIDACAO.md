@@ -64,3 +64,17 @@ A validação HTTP utilizou um espaço fictício isolado. Seus artefatos privado
 - Retenção, exclusão, backups/restauração, termos, privacidade, contratos e revisão profissional/regulatória para operação com dados reais.
 
 A assinatura eletrônica não é integrada. Os arquivos estão identificados como sem assinatura eletrônica. Não se declara certificação LGPD, prontuário certificado ou homologação de gráfica.
+
+## Atualização de modelos e fluxo de emissão
+
+- Build de produção e TypeScript concluídos sem erros.
+- 11 testes automatizados de validação, revisão, origem, modelos, cores e estado do rascunho aprovados.
+- 84 PDFs fictícios: seis modelos × A4/A5 × texto curto, longo, branco, logo horizontal, vertical, quadrada e dados opcionais ausentes. Dimensões, acentos, número de páginas, texto final e ausência de paciente no papel em branco verificados. Folha em branco e texto curto permanecem em uma página no cenário de teste.
+- Miniaturas da biblioteca geradas de PDFs reais. Inspeção visual do conjunto dos seis modelos e páginas de logo vertical e fim de texto longo realizada. Não se declara inspeção de todas as páginas da matriz.
+- 19 verificações HTTP autenticadas locais aprovadas: sessão, perfil, paciente, biblioteca, restrições administrativas, rascunho, revisão obrigatória, conflito, seis prévias sem gravação de versão, emissão, arquivo privado, troca de modelo sem perda do texto, bytes antigos preservados, busca por paciente/período/tipo e papel em branco.
+- Três versões de um mesmo documento registraram apenas uma utilização, atribuída ao primeiro modelo. Conta de QA excluída dos rankings.
+- SQL transacional confirmou isolamento, impossibilidade de autoatribuir administração, bloqueio de escrita da biblioteca e estatísticas para profissional comum; administração fictícia autorizada apenas dentro da transação revertida.
+- Dependências fixadas em lockfile; auditoria npm sem vulnerabilidades após atualização das ferramentas de desenvolvimento.
+- Fontes TTF e arquivos padrão do PDFKit conferidos no rastreamento das rotas de geração e prévia.
+
+Limites: o controle de navegador estava desabilitado neste ambiente. Instalação real, teclado móvel, compartilhamento nativo e impressão física ainda precisam de conferência em aparelhos reais. A associação da conta do proprietário à administração aguarda o e-mail de login; não foi atribuída a outra conta.

@@ -1,6 +1,7 @@
 import { context } from "@/lib/context";
 import { snapshot } from "@/lib/snapshot";
 import { Shell } from "@/components/shell";
+import { visualLibrary } from "@/lib/visual-library";
 import { DocumentEditor } from "@/components/document-editor";
 import { TYPES, type DocType } from "@/lib/config";
 export default async function NewDocument({
@@ -29,6 +30,9 @@ export default async function NewDocument({
         .order("name"),
     ]);
   if (pe || te) throw pe || te;
+  const library = await visualLibrary();
+  if (!library.some((t) => t.id === base.branding.template) && library[0])
+    base.branding.template = library[0].id;
   let initial;
   if (query.duplicate) {
     const { data } = await client
@@ -50,10 +54,19 @@ export default async function NewDocument({
   return (
     <Shell name={organization.name}>
       <a href="/documentos">← Documentos</a>
-      <h1>Novo documento</h1>
-      <p className="lead">Um passo de cada vez, do texto ao PDF.</p>
+      <h1>
+        {query.type === "exames"
+          ? "Solicitação de exames"
+          : query.type === "orientacoes"
+            ? "Orientações"
+            : "Nova prescrição"}
+      </h1>
+      <p className="lead">
+        Selecione o paciente, escreva e revise para gerar o PDF.
+      </p>
       <DocumentEditor
         base={base}
+        library={library}
         patients={patients || []}
         templates={templates || []}
         initial={initial}

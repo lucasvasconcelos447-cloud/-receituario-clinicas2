@@ -19,6 +19,17 @@ export const patientSchema = z.object({
   sex: text(40),
 });
 export const documentSchema = z.object({
+  visual_template: z
+    .enum([
+      "minimalista",
+      "classico",
+      "floral",
+      "botanico",
+      "geometrico",
+      "institucional",
+    ])
+    .nullable()
+    .optional(),
   patient_id: z
     .union([z.uuid(), z.literal(""), z.null()])
     .transform((v) => v || null),
@@ -58,7 +69,14 @@ export const professionalSchema = z.object({
 export const brandingSchema = z.object({
   primary_color: z.string().regex(/^#[0-9a-f]{6}$/i),
   secondary_color: z.string().regex(/^#[0-9a-f]{6}$/i),
-  template: z.enum(["minimalista", "classico", "floral"]),
+  template: z.enum([
+    "minimalista",
+    "classico",
+    "floral",
+    "botanico",
+    "geometrico",
+    "institucional",
+  ]),
   paper: z.enum(["A4", "A5"]),
   font: z.enum(["classica", "moderna"]),
   logo_width: z.coerce.number().int().min(35).max(130),

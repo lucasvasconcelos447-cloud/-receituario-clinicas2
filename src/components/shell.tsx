@@ -10,6 +10,7 @@ import {
   Plus,
   LogOut,
 } from "lucide-react";
+import { db } from "@/lib/supabase/server";
 import { APP } from "@/lib/config";
 import { signout } from "@/app/auth-actions";
 const links = [
@@ -17,11 +18,11 @@ const links = [
   ["/documentos", "Documentos", Files],
   ["/pacientes", "Pacientes", Users],
   ["/modelos", "Modelos de texto", BookOpen],
-  ["/personalizar", "Personalizar documentos", Palette],
+  ["/personalizar", "Modelos visuais", Palette],
   ["/perfil", "Perfil profissional", UserRound],
   ["/configuracoes", "Configurações e instalação", Settings],
 ] as const;
-export function Shell({
+export async function Shell({
   children,
   name,
   active,
@@ -30,6 +31,14 @@ export function Shell({
   name: string;
   active?: string;
 }) {
+  const client = await db();
+  const { data: admin } = await client.rpc("is_library_admin");
+  const visibleLinks = admin
+    ? [
+        ...links,
+        ["/administracao", "Administrar biblioteca", Settings] as const,
+      ]
+    : links;
   return (
     <div className="workspace">
       <aside className="sidebar">
@@ -48,10 +57,10 @@ export function Shell({
         </div>
         <a className="button" href="/novo">
           <Plus size={18} />
-          Novo documento
+          Nova prescrição
         </a>
         <nav aria-label="Principal">
-          {links.map(([url, label, Icon]) => (
+          {visibleLinks.map(([url, label, Icon]) => (
             <a
               key={url}
               href={url}
@@ -84,7 +93,7 @@ export function Shell({
         <details className="mobile-menu">
           <summary>☰ Menu · {APP.name}</summary>
           <nav>
-            {links.map(([url, label]) => (
+            {visibleLinks.map(([url, label]) => (
               <a key={url} href={url}>
                 {label}
               </a>
@@ -101,7 +110,7 @@ export function Shell({
       </div>
       <nav className="bottom-nav" aria-label="Navegação móvel">
         <a href="/">Início</a>
-        <a href="/novo">＋ Novo</a>
+        <a href="/novo">＋ Prescrição</a>
         <a href="/documentos">Documentos</a>
         <a href="/pacientes">Pacientes</a>
       </nav>

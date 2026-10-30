@@ -1,6 +1,7 @@
 import { context } from "@/lib/context";
 import { snapshot } from "@/lib/snapshot";
 import { Shell } from "@/components/shell";
+import { visualLibrary } from "@/lib/visual-library";
 import { DocumentEditor } from "@/components/document-editor";
 import { FileActions } from "@/components/file-actions";
 import { notFound } from "next/navigation";
@@ -75,6 +76,7 @@ export default async function EditDocument({
         </section>
       ) : null}
       <DocumentEditor
+        library={await visualLibrary()}
         key={doc.id}
         base={base}
         patients={patients || []}

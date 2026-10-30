@@ -103,8 +103,13 @@ export function InstallButton() {
   const { prompt, installed, clearPrompt } = useContext(InstallationContext);
   const [help, setHelp] = useState("");
   const [busy, setBusy] = useState(false);
+  if (installed) return null;
   return (
-    <div>
+    <div className="install-callout">
+      <div>
+        <strong>Leve seu espaço com você</strong>
+        <p>Acesse direto pela tela inicial do seu celular</p>
+      </div>
       <button
         className="button secondary"
         disabled={installed || busy}
@@ -142,10 +147,7 @@ export function InstallButton() {
             : "Instalar aplicativo"}
       </button>
       {help && !installed && <p role="status">{help}</p>}
-      <p className="muted">
-        A instalação facilita o acesso. Pacientes e documentos precisam de
-        conexão.
-      </p>
+      <small>Pacientes e documentos precisam de conexão.</small>
     </div>
   );
 }

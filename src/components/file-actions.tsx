@@ -5,11 +5,15 @@ export function FileActions({
   documentId,
   versionId,
   onGenerated,
+  beforeGenerate,
+  onBusy,
 }: {
   blank?: boolean;
   documentId?: string;
   versionId?: string;
   onGenerated?: (updated_at: string) => void;
+  beforeGenerate?: () => Promise<string | undefined>;
+  onBusy?: (busy: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -24,12 +28,22 @@ export function FileActions({
   );
   async function load() {
     if (file) return { file, url };
+    const preparedId =
+      beforeGenerate && !versionId && !blank
+        ? await beforeGenerate()
+        : documentId;
+    if (!versionId && !blank && !preparedId)
+      throw new Error(
+        "Salvamento não confirmado. Confira os campos e tente novamente.",
+      );
     const response = await fetch(
       versionId ? `/api/files/${versionId}` : "/api/pdf",
       {
         method: versionId ? "GET" : "POST",
         headers: versionId ? {} : { "Content-Type": "application/json" },
-        body: versionId ? undefined : JSON.stringify({ blank, documentId }),
+        body: versionId
+          ? undefined
+          : JSON.stringify({ blank, documentId: preparedId }),
         cache: "no-store",
       },
     );
@@ -53,14 +67,16 @@ export function FileActions({
     setGeneratedVersion(response.headers.get("X-Version-Id") || versionId);
     return { file: f, url: u };
   }
-  async function run(mode: "download" | "share" | "print") {
+  async function run(mode: "generate" | "download" | "share" | "print") {
     const printWindow =
       mode === "print" ? window.open("about:blank", "_blank") : null;
     if (printWindow) printWindow.opener = null;
     setBusy(true);
+    onBusy?.(true);
     setError("");
     try {
       const value = await load();
+      if (mode === "generate") return;
       if (mode === "share" && navigator.canShare?.({ files: [value.file] })) {
         await navigator.share({ files: [value.file], title: "Documento" });
         return;
@@ -94,6 +110,7 @@ export function FileActions({
         );
     } finally {
       setBusy(false);
+      onBusy?.(false);
     }
   }
   return (
@@ -102,32 +119,38 @@ export function FileActions({
         <button
           className="button"
           disabled={busy}
-          onClick={() => run("download")}
+          onClick={() => run(beforeGenerate && !file ? "generate" : "download")}
         >
           {busy
             ? "Preparando PDF…"
             : versionId
               ? "Baixar esta versão"
               : file
-                ? "Baixar PDF novamente"
+                ? "Baixar PDF"
                 : blank
                   ? "Gerar papel em branco"
-                  : "Gerar PDF e baixar"}
+                  : beforeGenerate
+                    ? "Salvar e gerar PDF"
+                    : "Gerar PDF e baixar"}
         </button>
-        <button
-          className="button secondary"
-          disabled={busy}
-          onClick={() => run("print")}
-        >
-          Abrir para imprimir
-        </button>
-        <button
-          className="button secondary"
-          disabled={busy}
-          onClick={() => run("share")}
-        >
-          Compartilhar arquivo
-        </button>
+        {(file || versionId) && (
+          <>
+            <button
+              className="button secondary"
+              disabled={busy}
+              onClick={() => run("print")}
+            >
+              Abrir para imprimir
+            </button>
+            <button
+              className="button secondary"
+              disabled={busy}
+              onClick={() => run("share")}
+            >
+              Compartilhar arquivo
+            </button>{" "}
+          </>
+        )}
       </div>
       {error && (
         <p role="alert" className="notice error">
@@ -144,18 +167,20 @@ export function FileActions({
           )}
         </p>
       )}
-      <p className="muted">
-        Para assinatura externa: baixe o PDF, envie ao{" "}
-        <a
-          href="https://assinador.iti.br/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          assinador oficial gov.br ↗
-        </a>{" "}
-        e baixe o resultado. Suas credenciais são informadas apenas no serviço
-        oficial.
-      </p>
+      {(file || versionId) && (
+        <p className="muted">
+          Para assinatura externa: baixe o PDF, envie ao{" "}
+          <a
+            href="https://assinador.iti.br/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            assinador oficial gov.br ↗
+          </a>{" "}
+          e baixe o resultado. Suas credenciais são informadas apenas no serviço
+          oficial.
+        </p>
+      )}
     </div>
   );
 }

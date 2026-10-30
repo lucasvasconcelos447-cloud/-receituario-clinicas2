@@ -17,6 +17,7 @@ export type Result = {
   success?: string;
   id?: string;
   updated_at?: string;
+  patient?: import("@/lib/types").Patient;
 };
 function values(form: FormData) {
   return Object.fromEntries(form.entries());
@@ -46,7 +47,14 @@ export async function createOrganization(
 export async function savePatient(_: Result, form: FormData): Promise<Result> {
   try {
     const { client, organization } = await context();
-    const parsed = patientSchema.safeParse(values(form));
+    const parsed = patientSchema.safeParse({
+      birth_date: "",
+      phone: "",
+      identifier: "",
+      address: "",
+      sex: "",
+      ...values(form),
+    });
     if (!parsed.success) return { error: parsed.error.issues[0].message };
     const id = String(form.get("id") || "");
     const query = id
@@ -58,10 +66,10 @@ export async function savePatient(_: Result, form: FormData): Promise<Result> {
       : client
           .from("patients")
           .insert({ ...parsed.data, organization_id: organization.id });
-    const { data, error } = await query.select("id").single();
+    const { data, error } = await query.select("*").single();
     if (error) throw error;
     revalidatePath("/pacientes");
-    return { success: "Paciente salvo.", id: data.id };
+    return { success: "Paciente salvo.", id: data.id, patient: data };
   } catch (e) {
     return fail(e);
   }
@@ -188,6 +196,14 @@ export async function saveBranding(_: Result, form: FormData): Promise<Result> {
         .upload(logo_path, safe, { contentType: "image/png", upsert: false });
       if (error) throw error;
     }
+    const { data: available } = await client
+      .from("visual_templates")
+      .select("id")
+      .eq("id", parsed.data.template)
+      .eq("published", true)
+      .maybeSingle();
+    if (!available)
+      return { error: "Escolha um modelo visual disponível na biblioteca." };
     const { error } = await client
       .from("document_branding")
       .update({
@@ -217,6 +233,51 @@ export async function saveDocument(
     if (!parsed.success) return { error: parsed.error.issues[0].message };
     if (id && !expected)
       return { error: "Reabra o documento antes de salvar." };
+    const { data: existing } = id
+      ? await client
+          .from("documents")
+          .select("visual_template")
+          .eq("id", id)
+          .eq("organization_id", organization.id)
+          .maybeSingle()
+      : { data: null };
+    if (!parsed.data.visual_template) {
+      if (existing?.visual_template)
+        parsed.data.visual_template = existing.visual_template;
+      else {
+        const { data: branding } = await client
+          .from("document_branding")
+          .select("template")
+          .eq("organization_id", organization.id)
+          .single();
+        const { data: catalog } = await client
+          .from("visual_templates")
+          .select("id")
+          .eq("published", true)
+          .order("sort_order");
+        parsed.data.visual_template =
+          (catalog?.some((t) => t.id === branding?.template)
+            ? branding!.template
+            : catalog?.[0]?.id) || null;
+      }
+    }
+    if (!parsed.data.visual_template)
+      return {
+        error: "Nenhum modelo visual disponível. Contate a administração.",
+      };
+    if (parsed.data.visual_template !== existing?.visual_template) {
+      const { data: available } = await client
+        .from("visual_templates")
+        .select("id")
+        .eq("id", parsed.data.visual_template)
+        .eq("published", true)
+        .maybeSingle();
+      if (!available)
+        return {
+          error:
+            "Este modelo não está disponível para novos documentos. Escolha outro.",
+        };
+    }
     let query = id
       ? client
           .from("documents")

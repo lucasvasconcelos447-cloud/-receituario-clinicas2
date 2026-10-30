@@ -3,7 +3,7 @@ const config: NextConfig = {
   experimental: { serverActions: { bodySizeLimit: "3mb" } },
   serverExternalPackages: ["sharp", "@react-pdf/renderer"],
   outputFileTracingIncludes: {
-    "/api/pdf": [
+    "/api/{pdf,preview}": [
       "./assets/fonts/**/*",
       "./node_modules/pdfkit/js/standard-fonts/**/*",
       "./node_modules/pdfkit/js/data/**/*",

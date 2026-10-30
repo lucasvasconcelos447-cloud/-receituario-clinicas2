@@ -19,4 +19,21 @@ begin insert into public.organization_members(organization_id,user_id,role) valu
 begin insert into storage.objects(bucket_id,name) values('clinical-private','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/logos/attack.png');raise exception 'Storage upload crossed organizations';exception when insufficient_privilege then null;end;
 begin update public.document_versions set file_path='attack';raise exception 'Version mutation allowed';exception when insufficient_privilege then null;end;
 end $$;
+do $$begin
+ if public.is_library_admin() then raise exception 'Non-admin gained administrator status';end if;
+ update public.visual_templates set name='ATTACK' where id='minimalista';if found then raise exception 'Non-admin changed catalog';end if;
+ begin insert into public.visual_templates(id,name,thumbnail,published) values('botanico','ATTACK','/templates/botanico.png',false);raise exception 'Non-admin inserted catalog';exception when insufficient_privilege then null;end;
+ begin perform public.library_statistics(false);raise exception 'Non-admin read statistics';exception when insufficient_privilege then null;end;
+ begin select count(*) from private.layout_first_uses;raise exception 'Non-admin read raw usage';exception when insufficient_privilege then null;end;
+ begin insert into private.library_admins values('22222222-2222-4222-8222-222222222222');raise exception 'Admin escalation allowed';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+insert into private.library_admins values('11111111-1111-4111-8111-111111111111');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',true);
+do $$begin
+ if not public.is_library_admin() then raise exception 'Admin denied';end if;
+ perform public.library_statistics(true);
+ update public.visual_templates set name='Teste de administração' where id='minimalista';if not found then raise exception 'Admin catalog update denied';end if;
+end $$;
 rollback;

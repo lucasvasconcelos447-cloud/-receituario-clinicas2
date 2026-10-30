@@ -14,6 +14,8 @@ import path from "node:path";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { Snapshot } from "../types";
 import { TYPES, brDate } from "../config";
+import { ARTWORK, documentInk } from "../document-designs";
+import sharp from "sharp";
 Font.register({
   family: "NotoSans",
   fonts: [
@@ -37,7 +39,13 @@ Font.register({
 Font.registerHyphenationCallback((word) =>
   word.length > 28 ? word.match(/.{1,18}/gu) || [word] : [word],
 );
-export function PdfDocument({ snapshot: s }: { snapshot: Snapshot }) {
+export function PdfDocument({
+  snapshot: s,
+  logoAspect = 1,
+}: {
+  snapshot: Snapshot;
+  logoAspect?: number;
+}) {
   const {
     organization: o,
     professional: p,
@@ -45,13 +53,47 @@ export function PdfDocument({ snapshot: s }: { snapshot: Snapshot }) {
     document: d,
     patient,
   } = s;
+  const ink = documentInk(b.primary_color);
   const a5 = b.paper === "A5";
   const margin = a5 ? 30 : 44;
   const family = b.font === "classica" ? "NotoSerif" : "NotoSans";
-  const headerHeight = a5 ? 150 : 165;
   const pageWidth = a5 ? 419.53 : 595.28;
   const pageHeight = a5 ? 595.28 : 841.89;
   const med = Boolean(d?.medication_mode);
+  const textWidth = pageWidth - 2 * margin;
+  const headingSize = a5 ? 12 : 16;
+  const lines = (text: string, size: number) =>
+    Math.max(1, Math.ceil(text.length / (textWidth / (size * 0.65))));
+  const professionalLine = [
+    p.name,
+    p.category,
+    `${p.council} ${p.registration}/${p.state}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const patientLine = !s.blank
+    ? `Paciente: ${patient?.name || "Selecione um paciente"} · Emissão: ${d ? brDate(d.issue_date) : ""}`
+    : "";
+  const logoWidth = s.logoData ? Math.min(b.logo_width, 48 * logoAspect) : 0;
+  const logoHeight = s.logoData ? Math.min(48, b.logo_width / logoAspect) : 0;
+  const headerHeight =
+    28 +
+    (s.logoData ? logoHeight + 6 : 0) +
+    lines(o.name, headingSize) * headingSize * 1.3 +
+    8 +
+    lines(professionalLine, 7.5) * 10 +
+    (patientLine ? 5 + lines(patientLine, 7) * 9.1 : 0) +
+    21;
+  const footerLines = [
+    b.phrase,
+    o.cnpj ? `CNPJ: ${o.cnpj}` : "",
+    b.show_address
+      ? [o.address, o.city, o.state].filter(Boolean).join(" · ")
+      : "",
+    b.show_contact ? [o.phone, o.email].filter(Boolean).join(" · ") : "",
+  ].filter(Boolean);
+  const footerHeight =
+    footerLines.reduce((sum, text) => sum + lines(text, 6.5) * 9, 0) + 10;
   return (
     <Document
       title={s.blank ? "Receituário em branco" : "Documento profissional"}
@@ -65,7 +107,8 @@ export function PdfDocument({ snapshot: s }: { snapshot: Snapshot }) {
           fontFamily: family,
           fontSize: a5 ? 9 : 10.5,
           paddingTop: headerHeight,
-          paddingBottom: 100,
+          paddingBottom: footerHeight + 52,
+          backgroundColor: "#ffffff",
           paddingHorizontal: margin,
           color: "#252d2b",
           lineHeight: 1.55,
@@ -79,18 +122,24 @@ export function PdfDocument({ snapshot: s }: { snapshot: Snapshot }) {
             top: 25,
             left: margin,
             width: pageWidth - 2 * margin,
-            borderBottomWidth: b.template === "classico" ? 2 : 1,
             borderBottomColor: b.primary_color,
             paddingBottom: 10,
-            alignItems: b.template === "classico" ? "center" : "flex-start",
+            alignItems: "center",
+            textAlign: "center",
+            borderBottomWidth:
+              b.template === "institucional"
+                ? 3
+                : b.template === "classico"
+                  ? 1.5
+                  : 0.5,
           }}
         >
           {s.logoData && (
             <Image
               src={s.logoData}
               style={{
-                width: Math.min(b.logo_width, a5 ? 95 : 130),
-                height: 42,
+                width: logoWidth,
+                height: logoHeight,
                 objectFit: "contain",
                 marginBottom: 4,
               }}
@@ -98,8 +147,8 @@ export function PdfDocument({ snapshot: s }: { snapshot: Snapshot }) {
           )}
           <Text
             style={{
-              color: b.primary_color,
-              fontSize: a5 ? 13 : 17,
+              color: ink,
+              fontSize: headingSize,
               lineHeight: 1.3,
               marginBottom: 4,
               fontWeight: 700,
@@ -107,53 +156,60 @@ export function PdfDocument({ snapshot: s }: { snapshot: Snapshot }) {
           >
             {o.name}
           </Text>
-          {b.phrase && (
-            <Text
-              style={{
-                fontSize: 7.5,
-                lineHeight: 1.3,
-                marginBottom: 3,
-                color: "#58635f",
-              }}
-            >
-              {b.phrase}
-            </Text>
-          )}
-          <Text style={{ fontSize: 8, lineHeight: 1.3, marginTop: 4 }}>
-            {p.name} · {p.category} · {p.council} {p.registration}/{p.state}
+          <Text style={{ fontSize: 7.5, lineHeight: 1.3, marginTop: 4 }}>
+            {professionalLine}
           </Text>
-          {!s.blank && (
+          {patientLine && (
             <Text style={{ fontSize: 7, lineHeight: 1.3, marginTop: 4 }}>
-              Paciente: {patient?.name} · Emissão:{" "}
-              {d ? brDate(d.issue_date) : ""}
+              {patientLine}
             </Text>
           )}
         </View>
-        {b.template === "floral" && (
-          <Svg
-            fixed
-            width={40}
-            height={65}
-            style={{ position: "absolute", top: 30, right: margin }}
-            viewBox="0 0 40 65"
-          >
-            <Path
-              d="M20 60 Q5 35 25 5 M17 44 Q0 42 6 29 Q19 30 17 44 M18 29 Q36 28 32 16 Q19 18 18 29 M22 15 Q8 11 14 2 Q25 4 22 15"
-              stroke={b.secondary_color}
-              strokeWidth={1.1}
-              fill="none"
-            />
-          </Svg>
-        )}
+        {ARTWORK[b.template].map((drawing, i) => (
+          <React.Fragment key={i}>
+            <Svg
+              fixed
+              width={22}
+              height={82}
+              viewBox="0 0 32 100"
+              style={{ position: "absolute", top: 12, right: 3 }}
+            >
+              <Path
+                d={drawing}
+                stroke={b.secondary_color}
+                strokeWidth={0.9}
+                fill="none"
+              />
+            </Svg>
+            <Svg
+              fixed
+              width={22}
+              height={82}
+              viewBox="0 0 32 100"
+              style={{
+                position: "absolute",
+                bottom: 40,
+                left: 3,
+                transform: "rotate(180deg)",
+              }}
+            >
+              <Path
+                d={drawing}
+                stroke={b.secondary_color}
+                strokeWidth={0.9}
+                fill="none"
+              />
+            </Svg>
+          </React.Fragment>
+        ))}
         <View
           fixed
           style={{
             position: "absolute",
-            top: pageHeight - 72,
+            top: pageHeight - footerHeight - 36,
             left: margin,
-            width: pageWidth - 2 * margin,
-            height: 50,
-            borderTopWidth: 1,
+            width: textWidth,
+            borderTopWidth: b.template === "institucional" ? 2 : 0.5,
             borderTopColor: b.secondary_color,
             paddingTop: 7,
             fontSize: 6.5,
@@ -161,27 +217,32 @@ export function PdfDocument({ snapshot: s }: { snapshot: Snapshot }) {
             lineHeight: 1.3,
           }}
         >
-          {o.cnpj && <Text>CNPJ: {o.cnpj}</Text>}
-          {b.show_address && (
-            <Text>
-              {[o.address, o.city, o.state].filter(Boolean).join(" · ")}
-            </Text>
-          )}
-          {b.show_contact && (
-            <Text>{[o.phone, o.email].filter(Boolean).join(" · ")}</Text>
-          )}
+          {footerLines.map((line, i) => (
+            <Text key={i}>{line}</Text>
+          ))}
         </View>
         <Text
           style={{
             fontSize: a5 ? 15 : 19,
-            color: b.primary_color,
+            color: ink,
             fontWeight: 700,
             marginBottom: 15,
+            textAlign:
+              b.template === "classico" || b.template === "floral"
+                ? "center"
+                : "left",
+            letterSpacing: b.template === "classico" ? 1.4 : 0,
+            borderLeftWidth: b.template === "geometrico" ? 3 : 0,
+            borderLeftColor: b.secondary_color,
+            borderBottomWidth: b.template === "institucional" ? 0.7 : 0,
+            borderBottomColor: b.primary_color,
+            paddingLeft: b.template === "geometrico" ? 10 : 0,
+            paddingBottom: b.template === "institucional" ? 8 : 0,
           }}
         >
           {d ? TYPES[d.type] : "Receituário"}
         </Text>
-        <View style={{ marginBottom: 15, fontSize: a5 ? 8 : 9 }} wrap={false}>
+        <View style={{ marginBottom: 15, fontSize: a5 ? 8 : 9 }}>
           <Text>
             Paciente:{" "}
             {s.blank
@@ -218,18 +279,35 @@ export function PdfDocument({ snapshot: s }: { snapshot: Snapshot }) {
           )}
         </View>
         {s.blank ? (
-          <View style={{ height: a5 ? 125 : 370 }}>
+          <View
+            style={{
+              height: Math.max(
+                40,
+                pageHeight - headerHeight - footerHeight - 310,
+              ),
+            }}
+          >
             {b.ruled &&
-              Array.from({ length: a5 ? 5 : 15 }, (_, i) => (
-                <View
-                  key={i}
-                  style={{
-                    height: 24,
-                    borderBottomWidth: 0.4,
-                    borderBottomColor: "#d7d9d5",
-                  }}
-                />
-              ))}
+              Array.from(
+                {
+                  length: Math.max(
+                    1,
+                    Math.floor(
+                      (pageHeight - headerHeight - footerHeight - 310) / 24,
+                    ),
+                  ),
+                },
+                (_, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      height: 24,
+                      borderBottomWidth: 0.4,
+                      borderBottomColor: "#d7d9d5",
+                    }}
+                  />
+                ),
+              )}
           </View>
         ) : (
           <>
@@ -281,8 +359,15 @@ export async function generatePdf(snapshot: Snapshot) {
   const safeSnapshot = snapshot.blank
     ? { ...snapshot, patient: null, document: null }
     : snapshot;
+  let logoAspect = 1;
+  if (safeSnapshot.logoData) {
+    const metadata = await sharp(
+      Buffer.from(safeSnapshot.logoData.split(",")[1], "base64"),
+    ).metadata();
+    logoAspect = (metadata.width || 1) / (metadata.height || 1);
+  }
   const rendered = await renderToBuffer(
-    <PdfDocument snapshot={safeSnapshot} />,
+    <PdfDocument snapshot={safeSnapshot} logoAspect={logoAspect} />,
   );
   const pdf = await PDFDocument.load(rendered);
   const font = await pdf.embedFont(StandardFonts.Helvetica);

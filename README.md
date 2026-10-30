@@ -1,6 +1,6 @@
 # Receituário
 
-Primeira versão de documentos profissionais para clínicas, independente do Agendamento Turbo. Aplicação Next.js com autenticação Supabase, PostgreSQL com RLS, arquivos privados e PDF vetorial com fontes incorporadas.
+Sistema de documentos profissionais para clínicas, independente do Agendamento Turbo. Aplicação Next.js com autenticação Supabase, PostgreSQL com RLS, arquivos privados e PDF vetorial com fontes incorporadas.
 
 ## Executar
 
@@ -29,14 +29,14 @@ O build usa Webpack para evitar as restrições de links simbólicos encontradas
 - `src/lib/context.ts`: sessão verificada e estabelecimento obtido pelo servidor.
 - `src/lib/validation.ts`: validação dos dados e requisitos para geração.
 - `src/lib/pdf`: PDF A4/A5, fontes incorporadas, múltiplas páginas.
-- `src/components`: formulários, editor por etapas, prévia, instalação e arquivos.
+- `src/components`: formulários, editor com escrita e revisão, prévia, instalação e arquivos.
 - `supabase/migrations`: schema inicial recuperado do projeto e complemento aplicado.
 - `tests`: validações e SQL de isolamento transacional.
 - `scripts/pdf-qa.ts`: arquivos de teste com dados exclusivamente fictícios.
 
 ## Recursos implementados
 
-Cadastro, login, confirmação conforme Supabase, recuperação de senha, logout, proteção no servidor; criação de estabelecimento; perfil profissional; upload PNG/JPEG/WebP até 2 MB com decodificação, limites de pixels e reprocessamento; identidade com três layouts, duas fontes, cores, logo proporcional, rodapé e papel; pacientes com busca e edição; modelos próprios de texto com edição/exclusão; editor com etapas, prévia, confirmação real de salvamento e detecção de conflito; rascunhos reabertos e duplicados; geração de PDFs preenchidos e em branco; histórico com versões e arquivos imutáveis; download autenticado e compartilhamento nativo quando disponível; manifest, ícones, instalação e página sem conexão.
+Cadastro, login, confirmação conforme Supabase, recuperação de senha, logout, proteção no servidor; criação de estabelecimento; perfil profissional; upload PNG/JPEG/WebP até 2 MB com decodificação, limites de pixels e reprocessamento; identidade com seis layouts, duas fontes, cores, logo proporcional, rodapé e papel; pacientes com busca e edição; modelos próprios de texto com edição/exclusão; editor unificado com cadastro rápido de paciente, prévia real do PDF, confirmação real de salvamento e detecção de conflito; rascunhos reabertos e duplicados; geração de PDFs preenchidos e em branco; histórico com versões e arquivos imutáveis; download autenticado e compartilhamento nativo quando disponível; manifest, ícones, instalação e página sem conexão.
 
 A tabela `document_versions` consolida os metadados de arquivo, caminho privado e snapshot. Não há tabela separada `document_files`. A preparação para equipes está em `organization_members`, mas a autorização atual permite somente o responsável, sem convites ou edição de membros.
 
@@ -109,3 +109,17 @@ Para outra instalação, configure as variáveis de ambiente e os destinos de au
 Definir retenção/exclusão, exportação de dados, termos e privacidade, base legal e contratos com fornecedores, backups/restauração, suporte e resposta a incidentes. Não se declara conformidade integral com LGPD ou prontuário certificado. Não há cobrança, agenda, IA clínica ou assinatura integrada.
 
 Veja `VALIDACAO.md` para evidências e limitações dos testes.
+
+## Biblioteca de modelos visuais
+
+A biblioteca possui Minimalista, Clássico, Botânico, Floral suave, Geométrico e Institucional. O fundo é branco; a logo é proporcional e centralizada. Modelos visuais organizam a folha e modelos de texto guardam conteúdo reutilizável. A aparência pode ser trocada no editor sem remover o texto. O padrão de identidade vale para novos documentos; arquivos já emitidos continuam imutáveis.
+
+`src/lib/document-designs.ts` registra os identificadores e desenhos próprios. `public/templates` contém miniaturas renderizadas de PDFs reais fictícios. `scripts/gallery-qa.ts` e `scripts/verify_gallery.py` verificam a matriz de 84 documentos.
+
+A prévia abre sob demanda e gera um PDF transitório por `/api/preview`, sem gravar versão ou estatística. PDF.js renderiza uma página por vez, ajustada à largura com ampliação. Nenhum PDF clínico entra no service worker.
+
+A administração em `/administracao` depende de uma conta explicitamente cadastrada em `private.library_admins`, por UUID verificado. Não há provisionamento automático, campo editável pelo usuário ou autorização por `user_metadata`. Enquanto o proprietário não informar seu login, a lista de administradores permanece vazia. As ações, políticas RLS e estatísticas verificam a permissão no servidor e no banco.
+
+A primeira inserção bem-sucedida em `document_versions` registra uma única utilização por documento. Gerações seguintes, downloads e prévias não somam; uma troca posterior de layout não muda a atribuição da primeira emissão. Estatísticas retornam somente identificador do modelo e contagens agregadas. Contas fictícias de QA são excluídas.
+
+Para adicionar um novo desenho, implemente seu identificador no registro, renderer, validação e restrições de migração; gere uma miniatura real, execute a matriz de PDF e só então publique o cadastro administrativo. Imagens de referência não são convertidas automaticamente em layouts.

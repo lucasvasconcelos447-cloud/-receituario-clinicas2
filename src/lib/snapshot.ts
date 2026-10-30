@@ -43,6 +43,7 @@ export async function snapshot(documentId?: string): Promise<Snapshot> {
     if (personError) throw new Error("Selecione um paciente válido.");
     patient = person;
   }
+  if (document?.visual_template) branding.template = document.visual_template;
   let logoData: string | null = null;
   if (branding.logo_path) {
     if (!branding.logo_path.startsWith(`${organization.id}/logos/`))

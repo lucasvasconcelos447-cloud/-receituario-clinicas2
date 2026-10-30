@@ -22,3 +22,13 @@ node tests/http-smoke.mjs
 ```
 
 O teste de isolamento `tests/isolation.sql` exige uma conexão administrativa de um projeto de teste. Ele abre uma transação, cria duas contas fictícias, passa a operar como `authenticated`, verifica as restrições e executa rollback. Não contém credenciais.
+
+## Galeria e fluxo novo
+
+```sh
+npx tsx --test tests/validation.test.ts tests/layouts.test.ts
+npx tsx scripts/gallery-qa.ts
+python scripts/verify_gallery.py
+```
+
+A matriz usa 84 PDFs fictícios e atualiza as miniaturas de `public/templates`. `tests/isolation.sql` também testa a autorização da biblioteca e das estatísticas, com rollback.

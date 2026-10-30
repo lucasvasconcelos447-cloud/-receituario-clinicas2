@@ -24,7 +24,7 @@ export type Branding = {
   organization_id: string;
   primary_color: string;
   secondary_color: string;
-  template: "minimalista" | "classico" | "floral";
+  template: import("./document-designs").DesignId;
   paper: "A4" | "A5";
   font: "classica" | "moderna";
   logo_width: number;
@@ -58,6 +58,7 @@ export type ClinicalDocument = {
   justification: string;
   medication_mode: boolean;
   clinical_reviewed: boolean;
+  visual_template?: import("./document-designs").DesignId | null;
   status: "draft" | "generated";
   updated_at: string;
   created_at: string;
